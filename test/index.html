@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Media API Test Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Local MVP Tester</p>
+          <h1>Media, Voice, Render</h1>
+          <p class="subtext">
+            Use this page to upload files, generate voiceovers, and render MP4 outputs.
+          </p>
+        </div>
+        <label class="field">
+          <span>API Base URL</span>
+          <input id="baseUrl" type="text" value="http://localhost:3000" />
+        </label>
+      </header>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>1. Upload Media</h2>
+          <p>Images and videos only.</p>
+        </div>
+        <div class="stack">
+          <input id="uploadFiles" type="file" multiple accept="image/*,video/*" />
+          <button id="uploadBtn" type="button">Upload</button>
+        </div>
+        <div class="divider"></div>
+        <p class="label">Uploaded media</p>
+        <div id="mediaList" class="list"></div>
+        <label class="field">
+          <span>Manual media list (comma separated)</span>
+          <input id="mediaManual" type="text" placeholder="/uploads/image.jpg, /uploads/video.mp4" />
+        </label>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>2. Generate Voice</h2>
+          <p>Requires ElevenLabs credentials.</p>
+        </div>
+        <label class="field">
+          <span>Text to speak</span>
+          <textarea id="ttsText" rows="3" placeholder="Welcome to my video"></textarea>
+        </label>
+        <div class="stack">
+          <button id="voiceBtn" type="button">Generate Voice</button>
+          <label class="field">
+            <span>Audio path</span>
+            <input id="audioPath" type="text" placeholder="/audio/voice-....mp3" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>3. Render Video</h2>
+          <p>Select a format, then render.</p>
+        </div>
+        <div class="stack">
+          <label class="field">
+            <span>Format</span>
+            <select id="formatSelect">
+              <option value="16:9">16:9 (1920x1080)</option>
+              <option value="9:16">9:16 (1080x1920)</option>
+              <option value="1:1">1:1 (1080x1080)</option>
+            </select>
+          </label>
+          <button id="renderBtn" type="button">Render MP4</button>
+        </div>
+        <div class="divider"></div>
+        <div class="output">
+          <div>
+            <p class="label">Render result</p>
+            <a id="renderLink" href="#" target="_blank" rel="noreferrer">No render yet</a>
+            <p id="renderMeta" class="meta"></p>
+          </div>
+          <video id="renderVideo" controls></video>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Activity Log</h2>
+          <p>Recent requests and responses.</p>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
