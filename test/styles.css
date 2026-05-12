@@ -206,6 +206,45 @@ video {
   margin: 6px 0 0;
 }
 
+.job-detail {
+  padding: 12px;
+  background: rgba(15, 76, 92, 0.05);
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.download-link {
+  display: inline-block;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.download-link:hover {
+  background: var(--accent);
+  color: #fdf2e9;
+}
+
 .log {
   min-height: 120px;
   background: #0f1b20;

@@ -60,8 +60,8 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>3. Render Video</h2>
-          <p>Select a format, then render.</p>
+          <h2>3. Render Video (Sync)</h2>
+          <p>Wait for render to complete.</p>
         </div>
         <div class="stack">
           <label class="field">
@@ -72,7 +72,7 @@
               <option value="1:1">1:1 (1080x1080)</option>
             </select>
           </label>
-          <button id="renderBtn" type="button">Render MP4</button>
+          <button id="renderBtn" type="button">Render MP4 (Sync)</button>
         </div>
         <div class="divider"></div>
         <div class="output">
@@ -82,6 +82,54 @@
             <p id="renderMeta" class="meta"></p>
           </div>
           <video id="renderVideo" controls></video>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>4. Render Video (Async)</h2>
+          <p>Start a background job and poll status.</p>
+        </div>
+        <div class="stack">
+          <label class="field">
+            <span>Format</span>
+            <select id="asyncFormatSelect">
+              <option value="16:9">16:9 (1920x1080)</option>
+              <option value="9:16">9:16 (1080x1920)</option>
+              <option value="1:1">1:1 (1080x1080)</option>
+            </select>
+          </label>
+          <button id="asyncRenderBtn" type="button">Start Render Job (Async)</button>
+        </div>
+        <div class="divider"></div>
+        <p class="label">Active render jobs</p>
+        <div id="jobsList" class="list"></div>
+        <div id="jobDetail" style="display: none;" class="job-detail">
+          <div class="divider"></div>
+          <p class="label">Job details</p>
+          <p id="jobId" class="meta"></p>
+          <p id="jobStatus" class="meta"></p>
+          <div class="progress-bar">
+            <div id="jobProgress" class="progress-fill"></div>
+          </div>
+          <div class="stack">
+            <button id="pollJobBtn" type="button">Poll Status</button>
+            <a id="jobDownloadLink" href="#" class="download-link" style="display: none;">Download MP4</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>5. Download Files</h2>
+          <p>Download uploaded or rendered files.</p>
+        </div>
+        <label class="field">
+          <span>File path (e.g., uploads/image.jpg, audio/voice.mp3, renders/output.mp4)</span>
+          <input id="downloadPath" type="text" placeholder="/uploads/image.jpg" />
+        </label>
+        <div class="stack">
+          <button id="downloadBtn" type="button">Download File</button>
         </div>
       </section>
 

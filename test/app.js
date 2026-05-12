@@ -1,6 +1,7 @@
 const state = {
   media: [],
-  audio: ""
+  audio: "",
+  jobs: new Map()
 };
 
 const baseUrlInput = document.getElementById("baseUrl");
@@ -12,10 +13,21 @@ const ttsText = document.getElementById("ttsText");
 const voiceBtn = document.getElementById("voiceBtn");
 const audioPathInput = document.getElementById("audioPath");
 const formatSelect = document.getElementById("formatSelect");
+const asyncFormatSelect = document.getElementById("asyncFormatSelect");
 const renderBtn = document.getElementById("renderBtn");
 const renderLink = document.getElementById("renderLink");
 const renderMeta = document.getElementById("renderMeta");
 const renderVideo = document.getElementById("renderVideo");
+const asyncRenderBtn = document.getElementById("asyncRenderBtn");
+const jobsList = document.getElementById("jobsList");
+const jobDetail = document.getElementById("jobDetail");
+const jobIdEl = document.getElementById("jobId");
+const jobStatusEl = document.getElementById("jobStatus");
+const jobProgressEl = document.getElementById("jobProgress");
+const pollJobBtn = document.getElementById("pollJobBtn");
+const jobDownloadLink = document.getElementById("jobDownloadLink");
+const downloadPathInput = document.getElementById("downloadPath");
+const downloadBtn = document.getElementById("downloadBtn");
 const logEl = document.getElementById("log");
 
 const normalizeBaseUrl = () => baseUrlInput.value.trim().replace(/\/+$/, "");
@@ -174,6 +186,166 @@ renderBtn.addEventListener("click", async () => {
   } catch (err) {
     log(`Render failed: ${err.message}`);
   }
+});
+
+asyncRenderBtn.addEventListener("click", async () => {
+  const baseUrl = normalizeBaseUrl();
+  const audio = audioPathInput.value.trim();
+  const selectedMedia = getSelectedMedia();
+  const manualMedia = parseManualMedia();
+  const media = selectedMedia.length ? selectedMedia : manualMedia;
+
+  if (media.length === 0) {
+    log("Async render skipped: media list is empty.");
+    return;
+  }
+
+  if (!audio) {
+    log("Async render skipped: audio path is required.");
+    return;
+  }
+
+  try {
+    log("Starting async render job...");
+    const data = await requestJson(`${baseUrl}/api/render-job`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        media,
+        audio,
+        format: asyncFormatSelect.value
+      })
+    });
+
+    const jobId = data.jobId;
+    state.jobs.set(jobId, {
+      jobId,
+      status: "pending",
+      progress: 0,
+      outputUrl: null,
+      error: null
+    });
+
+    renderJobsList();
+    selectJob(jobId);
+    log("Render job created.", data);
+  } catch (err) {
+    log(`Async render failed: ${err.message}`);
+  }
+});
+
+const renderJobsList = () => {
+  jobsList.innerHTML = "";
+
+  if (state.jobs.size === 0) {
+    const empty = document.createElement("p");
+    empty.className = "meta";
+    empty.textContent = "No render jobs yet.";
+    jobsList.appendChild(empty);
+    return;
+  }
+
+  for (const [jobId, job] of state.jobs) {
+    const item = document.createElement("div");
+    item.className = "check";
+    item.style.cursor = "pointer";
+    item.style.padding = "8px";
+    item.style.borderRadius = "8px";
+    item.style.backgroundColor = "rgba(15, 76, 92, 0.05)";
+    item.style.marginBottom = "8px";
+
+    const statusColor = {
+      pending: "#666",
+      processing: "#0f4c5c",
+      completed: "#2d6a4f",
+      failed: "#d62828"
+    }[job.status] || "#666";
+
+    item.innerHTML = `
+      <strong style="color: ${statusColor};">${job.status.toUpperCase()}</strong>
+      <span style="font-size: 12px; color: #666; margin-left: 8px;">${jobId.slice(0, 8)}...</span>
+    `;
+
+    item.addEventListener("click", () => selectJob(jobId));
+    jobsList.appendChild(item);
+  }
+};
+
+const selectJob = (jobId) => {
+  const job = state.jobs.get(jobId);
+  if (!job) return;
+
+  jobIdEl.textContent = `Job ID: ${jobId}`;
+  jobStatusEl.textContent = `Status: ${job.status} (${job.progress}%)`;
+  jobProgressEl.style.width = `${job.progress}%`;
+
+  if (job.status === "completed" && job.outputUrl) {
+    const baseUrl = normalizeBaseUrl();
+    const downloadUrl = `${baseUrl}${job.outputUrl}`;
+    jobDownloadLink.href = downloadUrl;
+    jobDownloadLink.download = job.outputUrl.split("/").pop();
+    jobDownloadLink.style.display = "inline-block";
+  } else {
+    jobDownloadLink.style.display = "none";
+  }
+
+  jobDetail.style.display = "block";
+};
+
+pollJobBtn.addEventListener("click", async () => {
+  const baseUrl = normalizeBaseUrl();
+  let selectedJobId = null;
+
+  for (const [jobId, job] of state.jobs) {
+    if (job === state.jobs.get(jobId)) {
+      selectedJobId = jobId;
+      break;
+    }
+  }
+
+  const jobId = jobIdEl.textContent.replace("Job ID: ", "");
+  if (!jobId || jobId === "") {
+    log("No job selected.");
+    return;
+  }
+
+  try {
+    log(`Polling job status: ${jobId}`);
+    const data = await requestJson(`${baseUrl}/api/render-job/${jobId}`);
+
+    state.jobs.set(jobId, {
+      jobId: data.jobId,
+      status: data.status,
+      progress: data.progress,
+      outputUrl: data.outputUrl,
+      error: data.error
+    });
+
+    selectJob(jobId);
+    log("Job status updated.", data);
+  } catch (err) {
+    log(`Poll failed: ${err.message}`);
+  }
+});
+
+downloadBtn.addEventListener("click", () => {
+  const filePath = downloadPathInput.value.trim();
+  if (!filePath) {
+    log("Download skipped: file path is required.");
+    return;
+  }
+
+  const baseUrl = normalizeBaseUrl();
+  const downloadUrl = `${baseUrl}/api/download/${filePath}`;
+
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = filePath.split("/").pop();
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  log(`Download started: ${filePath}`);
 });
 
 renderMediaList();
