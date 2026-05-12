@@ -61,6 +61,12 @@ GET /api/render-job/{jobId}
 - Check render job status and progress.
 - response: { "jobId": "...", "status": "pending|processing|completed|failed", "progress": 0-100, "outputUrl": "...", "error": "..." }
 
+POST /api/video/generate
+- Generate video from text with ElevenLabs + media (all-in-one endpoint).
+- Combines voice generation + video rendering in one call.
+- body: { "text": "Welcome to my video", "media": ["/uploads/image.jpg"], "format": "9:16" }
+- response: { "success": true, "audioUrl": "/audio/...", "outputUrl": "/renders/...", "format": "9:16" }
+
 ## Export Formats
 - 16:9 -> 1920x1080
 - 9:16 -> 1080x1920

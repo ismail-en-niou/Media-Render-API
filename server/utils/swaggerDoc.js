@@ -114,6 +114,25 @@ const swaggerDocument = {
           "404": { description: "Job not found" }
         }
       }
+    },
+    "/api/video/generate": {
+      post: {
+        summary: "Generate video from text with ElevenLabs + media (all-in-one)",
+        description: "Combines voice generation and video rendering. Takes text, generates audio via ElevenLabs, then renders final video.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/VideoGenerateRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": { description: "Video generated", content: { "application/json": { schema: { $ref: "#/components/schemas/VideoGenerateResponse" } } } },
+          "400": { description: "Bad request" },
+          "500": { description: "Generation or render failed" }
+        }
+      }
     }
   },
   components: {
@@ -170,6 +189,30 @@ const swaggerDocument = {
           error: { type: "string", nullable: true },
           createdAt: { type: "string" },
           updatedAt: { type: "string" }
+        }
+      },
+      VideoGenerateRequest: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Text to convert to speech" },
+          media: { type: "array", items: { type: "string" }, description: "List of media file paths" },
+          format: { type: "string", enum: ["16:9", "9:16", "1:1"], description: "Video format (default: 16:9)" }
+        },
+        required: ["text", "media"],
+        example: {
+          text: "Welcome to my video",
+          media: ["/uploads/image.jpg", "/uploads/video.mp4"],
+          format: "9:16"
+        }
+      },
+      VideoGenerateResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean" },
+          text: { type: "string" },
+          audioUrl: { type: "string", description: "Generated audio file path" },
+          outputUrl: { type: "string", description: "Final video file path" },
+          format: { type: "string" }
         }
       }
     }

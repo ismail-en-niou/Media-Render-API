@@ -9,6 +9,7 @@ const voiceRoutes = require("./routes/voiceRoutes");
 const renderRoutes = require("./routes/renderRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const renderJobRoutes = require("./routes/renderJobRoutes");
+const videoGeneratorRoutes = require("./routes/videoGeneratorRoutes");
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./utils/swaggerDoc');
 
@@ -29,6 +30,7 @@ app.use("/api/voice", voiceRoutes);
 app.use("/api/render", renderRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api/render-job", renderJobRoutes);
+app.use("/api/video/generate", videoGeneratorRoutes);
 
 // Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

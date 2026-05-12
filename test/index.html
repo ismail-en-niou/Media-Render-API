@@ -121,7 +121,38 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>5. Download Files</h2>
+          <h2>5. Generate Video with ElevenLabs (All-in-One)</h2>
+          <p>Text → Voice → Video in one call.</p>
+        </div>
+        <label class="field">
+          <span>Text to convert to speech</span>
+          <textarea id="combinedText" rows="3" placeholder="Welcome to my video"></textarea>
+        </label>
+        <div class="stack">
+          <label class="field">
+            <span>Video format</span>
+            <select id="combinedFormatSelect">
+              <option value="16:9">16:9 (1920x1080)</option>
+              <option value="9:16">9:16 (1080x1920)</option>
+              <option value="1:1">1:1 (1080x1080)</option>
+            </select>
+          </label>
+          <button id="combinedGenerateBtn" type="button">Generate Video from Text</button>
+        </div>
+        <div class="divider"></div>
+        <div class="output">
+          <div>
+            <p class="label">Generated video</p>
+            <a id="combinedVideoLink" href="#" target="_blank" rel="noreferrer">No video yet</a>
+            <p id="combinedVideoMeta" class="meta"></p>
+          </div>
+          <video id="combinedVideo" controls></video>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>6. Download Files</h2>
           <p>Download uploaded or rendered files.</p>
         </div>
         <label class="field">
@@ -135,7 +166,7 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>Activity Log</h2>
+          <h2>7. Activity Log</h2>
           <p>Recent requests and responses.</p>
         </div>
         <pre id="log" class="log"></pre>

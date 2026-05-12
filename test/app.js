@@ -28,6 +28,12 @@ const pollJobBtn = document.getElementById("pollJobBtn");
 const jobDownloadLink = document.getElementById("jobDownloadLink");
 const downloadPathInput = document.getElementById("downloadPath");
 const downloadBtn = document.getElementById("downloadBtn");
+const combinedText = document.getElementById("combinedText");
+const combinedFormatSelect = document.getElementById("combinedFormatSelect");
+const combinedGenerateBtn = document.getElementById("combinedGenerateBtn");
+const combinedVideoLink = document.getElementById("combinedVideoLink");
+const combinedVideoMeta = document.getElementById("combinedVideoMeta");
+const combinedVideo = document.getElementById("combinedVideo");
 const logEl = document.getElementById("log");
 
 const normalizeBaseUrl = () => baseUrlInput.value.trim().replace(/\/+$/, "");
@@ -346,6 +352,49 @@ downloadBtn.addEventListener("click", () => {
   document.body.removeChild(link);
 
   log(`Download started: ${filePath}`);
+});
+
+combinedGenerateBtn.addEventListener("click", async () => {
+  const baseUrl = normalizeBaseUrl();
+  const text = combinedText.value.trim();
+  const selectedMedia = getSelectedMedia();
+  const manualMedia = parseManualMedia();
+  const media = selectedMedia.length ? selectedMedia : manualMedia;
+
+  if (!text) {
+    log("Combined generation skipped: text is required.");
+    return;
+  }
+
+  if (media.length === 0) {
+    log("Combined generation skipped: media list is empty.");
+    return;
+  }
+
+  try {
+    log("Generating video from text with ElevenLabs...");
+    const data = await requestJson(`${baseUrl}/api/video/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        media,
+        format: combinedFormatSelect.value
+      })
+    });
+
+    const outputUrl = data.outputUrl || "";
+    const absoluteUrl = outputUrl ? `${baseUrl}${outputUrl}` : "";
+
+    combinedVideoLink.textContent = absoluteUrl || "No video yet";
+    combinedVideoLink.href = absoluteUrl || "#";
+    combinedVideoMeta.textContent = data.success ? `Audio: ${data.audioUrl}, Format: ${data.format}` : "Failed";
+    combinedVideo.src = absoluteUrl;
+
+    log("Video generation complete.", data);
+  } catch (err) {
+    log(`Video generation failed: ${err.message}`);
+  }
 });
 
 renderMediaList();
