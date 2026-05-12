@@ -1,18 +1,21 @@
-const { v4: uuidv4 } = require("uuid");
 const { generateVoice } = require("../services/voiceService");
 const { renderVideo } = require("../services/renderService");
 const { createVideo } = require("../services/videoService");
+const { toPublicPath } = require("../utils/paths");
 
 const generateVideoWithElevenLabs = async (req, res, next) => {
   try {
-    const { text, media, format } = req.body;
+    const { text, format } = req.body;
+    const bodyMedia = Array.isArray(req.body.media) ? req.body.media : [];
+    const uploadedMedia = (req.files || []).map((file) => toPublicPath("uploads", file.filename));
+    const media = uploadedMedia.length > 0 ? uploadedMedia : bodyMedia;
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "text is required" });
     }
 
     if (!Array.isArray(media) || media.length === 0) {
-      return res.status(400).json({ error: "media must be a non-empty array" });
+      return res.status(400).json({ error: "media must be a non-empty array or upload files[]" });
     }
 
     // Step 1: Generate voice from text using ElevenLabs

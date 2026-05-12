@@ -28,6 +28,7 @@ const pollJobBtn = document.getElementById("pollJobBtn");
 const jobDownloadLink = document.getElementById("jobDownloadLink");
 const downloadPathInput = document.getElementById("downloadPath");
 const downloadBtn = document.getElementById("downloadBtn");
+const combinedFilesInput = document.getElementById("combinedFiles");
 const combinedText = document.getElementById("combinedText");
 const combinedFormatSelect = document.getElementById("combinedFormatSelect");
 const combinedGenerateBtn = document.getElementById("combinedGenerateBtn");
@@ -357,6 +358,7 @@ downloadBtn.addEventListener("click", () => {
 combinedGenerateBtn.addEventListener("click", async () => {
   const baseUrl = normalizeBaseUrl();
   const text = combinedText.value.trim();
+  const files = Array.from(combinedFilesInput.files || []);
   const selectedMedia = getSelectedMedia();
   const manualMedia = parseManualMedia();
   const media = selectedMedia.length ? selectedMedia : manualMedia;
@@ -366,22 +368,39 @@ combinedGenerateBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (media.length === 0) {
-    log("Combined generation skipped: media list is empty.");
+  if (files.length === 0 && media.length === 0) {
+    log("Combined generation skipped: provide media paths or upload files.");
     return;
   }
 
   try {
     log("Generating video from text with ElevenLabs...");
-    const data = await requestJson(`${baseUrl}/api/video/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        media,
-        format: combinedFormatSelect.value
-      })
-    });
+    let data;
+    if (files.length > 0) {
+      const formData = new FormData();
+      formData.append("text", text);
+      formData.append("format", combinedFormatSelect.value);
+      files.forEach((file) => formData.append("files", file));
+
+      const response = await fetch(`${baseUrl}/api/video/generate`, {
+        method: "POST",
+        body: formData
+      });
+      data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed: ${response.status}`);
+      }
+    } else {
+      data = await requestJson(`${baseUrl}/api/video/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          media,
+          format: combinedFormatSelect.value
+        })
+      });
+    }
 
     const outputUrl = data.outputUrl || "";
     const absoluteUrl = outputUrl ? `${baseUrl}${outputUrl}` : "";
