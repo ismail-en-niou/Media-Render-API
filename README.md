@@ -48,6 +48,19 @@ POST /api/render
 - body: { "media": ["/uploads/..."], "audio": "/audio/...", "format": "9:16" }
 - response: { "outputUrl": "/renders/render-<id>.mp4", "format": "9:16" }
 
+GET /api/download/{filePath}
+- Download a file from uploads, audio, or renders directories.
+- Example: /api/download/uploads/image.jpg
+
+POST /api/render-job
+- Start an async render job (returns jobId immediately, render runs in background).
+- body: { "media": [...], "audio": "...", "format": "..." }
+- response: { "jobId": "<uuid>", "status": "pending" }
+
+GET /api/render-job/{jobId}
+- Check render job status and progress.
+- response: { "jobId": "...", "status": "pending|processing|completed|failed", "progress": 0-100, "outputUrl": "...", "error": "..." }
+
 ## Export Formats
 - 16:9 -> 1920x1080
 - 9:16 -> 1080x1920

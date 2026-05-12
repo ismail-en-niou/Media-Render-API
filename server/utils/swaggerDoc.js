@@ -74,6 +74,46 @@ const swaggerDocument = {
           "400": { description: "Bad request" }
         }
       }
+    },
+    "/api/download/{filePath}": {
+      get: {
+        summary: "Download a file (uploads, audio, renders)",
+        parameters: [
+          { name: "filePath", in: "path", required: true, schema: { type: "string" }, example: "uploads/image.jpg" }
+        ],
+        responses: {
+          "200": { description: "File stream" },
+          "404": { description: "File not found" }
+        }
+      }
+    },
+    "/api/render-job": {
+      post: {
+        summary: "Start an async render job",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/RenderRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": { description: "Job created", content: { "application/json": { schema: { $ref: "#/components/schemas/RenderJobResponse" } } } }
+        }
+      }
+    },
+    "/api/render-job/{jobId}": {
+      get: {
+        summary: "Get render job status",
+        parameters: [
+          { name: "jobId", in: "path", required: true, schema: { type: "string" } }
+        ],
+        responses: {
+          "200": { description: "Job status", content: { "application/json": { schema: { $ref: "#/components/schemas/RenderJob" } } } },
+          "404": { description: "Job not found" }
+        }
+      }
     }
   },
   components: {
@@ -108,6 +148,28 @@ const swaggerDocument = {
         properties: {
           outputUrl: { type: "string" },
           format: { type: "string" }
+        }
+      },
+      RenderJobResponse: {
+        type: "object",
+        properties: {
+          jobId: { type: "string" },
+          status: { type: "string" }
+        }
+      },
+      RenderJob: {
+        type: "object",
+        properties: {
+          jobId: { type: "string" },
+          media: { type: "array", items: { type: "string" } },
+          audio: { type: "string" },
+          format: { type: "string" },
+          status: { type: "string", enum: ["pending", "processing", "completed", "failed"] },
+          progress: { type: "number" },
+          outputUrl: { type: "string", nullable: true },
+          error: { type: "string", nullable: true },
+          createdAt: { type: "string" },
+          updatedAt: { type: "string" }
         }
       }
     }

@@ -7,6 +7,8 @@ const { UPLOADS_DIR, AUDIO_DIR, RENDERS_DIR } = require("./utils/paths");
 const uploadRoutes = require("./routes/uploadRoutes");
 const voiceRoutes = require("./routes/voiceRoutes");
 const renderRoutes = require("./routes/renderRoutes");
+const downloadRoutes = require("./routes/downloadRoutes");
+const renderJobRoutes = require("./routes/renderJobRoutes");
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./utils/swaggerDoc');
 
@@ -25,6 +27,8 @@ app.use("/renders", express.static(RENDERS_DIR));
 app.use("/api/upload", uploadRoutes);
 app.use("/api/voice", voiceRoutes);
 app.use("/api/render", renderRoutes);
+app.use("/api/download", downloadRoutes);
+app.use("/api/render-job", renderJobRoutes);
 
 // Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
