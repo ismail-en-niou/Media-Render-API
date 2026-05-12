@@ -58,6 +58,23 @@ const swaggerDocument = {
         }
       }
     },
+    "/api/image/generate": {
+      post: {
+        summary: "Generate an image from a prompt",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ImageGenerateRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": { description: "Image generated", content: { "application/json": { schema: { $ref: "#/components/schemas/ImageGenerateResponse" } } } },
+          "400": { description: "Bad request" }
+        }
+      }
+    },
     "/api/render": {
       post: {
         summary: "Render a video from media and audio",
@@ -152,6 +169,29 @@ const swaggerDocument = {
       VoiceResponse: {
         type: "object",
         properties: { audioUrl: { type: "string" } }
+      },
+      ImageGenerateRequest: {
+        type: "object",
+        properties: {
+          prompt: { type: "string" },
+          width: { type: "number", example: 1024 },
+          height: { type: "number", example: 1024 }
+        },
+        required: ["prompt"],
+        example: {
+          prompt: "A cinematic sunset over the ocean",
+          width: 1024,
+          height: 1024
+        }
+      },
+      ImageGenerateResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean" },
+          imageUrl: { type: "string" },
+          width: { type: "number" },
+          height: { type: "number" }
+        }
       },
       RenderRequest: {
         type: "object",

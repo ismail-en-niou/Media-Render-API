@@ -6,6 +6,7 @@ const {
   UPLOADS_DIR,
   AUDIO_DIR,
   RENDERS_DIR,
+  TMP_DIR,
   resolvePublicPath,
   toPublicPath
 } = require("../utils/paths");
@@ -22,6 +23,17 @@ const FORMAT_SIZES = {
 const DEFAULT_FORMAT = "16:9";
 const IMAGE_DURATION_SECONDS = Number(process.env.IMAGE_DURATION_SECONDS || 3);
 const AUDIO_VOLUME = Number(process.env.AUDIO_VOLUME || 1.5);
+
+const FALLBACK_BLACK_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WnqYJgAAAAASUVORK5CYII=";
+
+const ensureFallbackImage = () => {
+  const fallbackPath = path.join(TMP_DIR, "fallback-black.png");
+  if (!fs.existsSync(fallbackPath)) {
+    fs.writeFileSync(fallbackPath, Buffer.from(FALLBACK_BLACK_PNG_BASE64, "base64"));
+  }
+  return fallbackPath;
+};
 
 const ensureAllowedPath = (absolutePath) => {
   const normalized = path.normalize(absolutePath);
@@ -55,7 +67,7 @@ const renderVideo = ({ media, audio, format }) => {
   const width = size.width;
   const height = size.height;
 
-  const mediaPaths = media.map(resolveMediaPath);
+  let mediaPaths = media.map(resolveMediaPath);
   const audioPath = resolveMediaPath(audio);
 
   const outputName = `render-${uuidv4()}.mp4`;
@@ -65,38 +77,17 @@ const renderVideo = ({ media, audio, format }) => {
   const filterParts = [];
   const command = ffmpeg();
 
-  // If no media is provided, create a plain background video and attach the audio.
+  // If no media is provided, use a tiny local black image and loop it for the audio duration.
   if (mediaPaths.length === 0) {
-    return new Promise((resolve, reject) => {
-      command
-        .input(`color=c=black:s=${width}x${height}:r=30`)
-        .inputOptions(["-f lavfi"])
-        .input(audioPath)
-        .outputOptions([
-          "-map 0:v",
-          "-map 1:a",
-          "-c:v libx264",
-          "-c:a aac",
-          `-af volume=${AUDIO_VOLUME}`,
-          "-shortest",
-          "-movflags +faststart"
-        ])
-        .on("end", () => {
-          resolve({
-            outputPath,
-            outputUrl: toPublicPath("renders", outputName),
-            format: format || DEFAULT_FORMAT
-          });
-        })
-        .on("error", (err) => reject(err))
-        .save(outputPath);
-    });
+    mediaPaths = [ensureFallbackImage()];
   }
 
   mediaPaths.forEach((mediaPath, index) => {
     const ext = path.extname(mediaPath).toLowerCase();
+    const isFallback = mediaPath.endsWith("fallback-black.png");
     if (IMAGE_EXTS.has(ext)) {
-      command.input(mediaPath).inputOptions(["-loop 1", `-t ${IMAGE_DURATION_SECONDS}`]);
+      const inputOptions = isFallback ? ["-loop 1"] : ["-loop 1", `-t ${IMAGE_DURATION_SECONDS}`];
+      command.input(mediaPath).inputOptions(inputOptions);
     } else if (VIDEO_EXTS.has(ext)) {
       command.input(mediaPath);
     } else {

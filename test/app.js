@@ -11,6 +11,12 @@ const mediaList = document.getElementById("mediaList");
 const mediaManual = document.getElementById("mediaManual");
 const ttsText = document.getElementById("ttsText");
 const voiceBtn = document.getElementById("voiceBtn");
+const imagePromptInput = document.getElementById("imagePrompt");
+const imageSizeSelect = document.getElementById("imageSizeSelect");
+const imageGenerateBtn = document.getElementById("imageGenerateBtn");
+const imageLink = document.getElementById("imageLink");
+const imageMeta = document.getElementById("imageMeta");
+const generatedImage = document.getElementById("generatedImage");
 const audioPathInput = document.getElementById("audioPath");
 const formatSelect = document.getElementById("formatSelect");
 const asyncFormatSelect = document.getElementById("asyncFormatSelect");
@@ -149,6 +155,39 @@ voiceBtn.addEventListener("click", async () => {
     log("Voice generated.", data);
   } catch (err) {
     log(`Voice generation failed: ${err.message}`);
+  }
+});
+
+imageGenerateBtn.addEventListener("click", async () => {
+  const baseUrl = normalizeBaseUrl();
+  const prompt = imagePromptInput.value.trim();
+  if (!prompt) {
+    log("Image generation skipped: prompt is required.");
+    return;
+  }
+
+  const [width, height] = imageSizeSelect.value.split("x").map(Number);
+
+  try {
+    log("Generating image...");
+    const data = await requestJson(`${baseUrl}/api/image/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, width, height })
+    });
+
+    const absoluteUrl = `${baseUrl}${data.imageUrl}`;
+    imageLink.textContent = absoluteUrl;
+    imageLink.href = absoluteUrl;
+    imageMeta.textContent = `Size: ${data.width} x ${data.height}`;
+    generatedImage.src = absoluteUrl;
+    generatedImage.style.maxWidth = "100%";
+    generatedImage.style.borderRadius = "14px";
+    generatedImage.style.border = "1px solid var(--border)";
+
+    log("Image generated.", data);
+  } catch (err) {
+    log(`Image generation failed: ${err.message}`);
   }
 });
 

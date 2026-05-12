@@ -44,6 +44,10 @@ POST /api/voice/generate
 - body: { "text": "Welcome to my video" }
 - response: { "audioUrl": "/audio/voice-<id>.mp3" }
 
+POST /api/image/generate
+- body: { "prompt": "A cinematic sunset over the ocean", "width": 1024, "height": 1024 }
+- response: { "success": true, "imageUrl": "/images/image-<id>.svg", "width": 1024, "height": 1024 }
+
 POST /api/render
 - body: { "media": ["/uploads/..."], "audio": "/audio/...", "format": "9:16" }
 - response: { "outputUrl": "/renders/render-<id>.mp4", "format": "9:16" }
