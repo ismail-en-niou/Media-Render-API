@@ -21,6 +21,7 @@ const FORMAT_SIZES = {
 
 const DEFAULT_FORMAT = "16:9";
 const IMAGE_DURATION_SECONDS = Number(process.env.IMAGE_DURATION_SECONDS || 3);
+const AUDIO_VOLUME = Number(process.env.AUDIO_VOLUME || 1.5);
 
 const ensureAllowedPath = (absolutePath) => {
   const normalized = path.normalize(absolutePath);
@@ -43,8 +44,8 @@ const resolveMediaPath = (publicPath) => {
 };
 
 const renderVideo = ({ media, audio, format }) => {
-  if (!Array.isArray(media) || media.length === 0) {
-    throw new Error("media must be a non-empty array");
+  if (!Array.isArray(media)) {
+    throw new Error("media must be an array");
   }
   if (!audio) {
     throw new Error("audio is required");
@@ -63,6 +64,34 @@ const renderVideo = ({ media, audio, format }) => {
   const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1`;
   const filterParts = [];
   const command = ffmpeg();
+
+  // If no media is provided, create a plain background video and attach the audio.
+  if (mediaPaths.length === 0) {
+    return new Promise((resolve, reject) => {
+      command
+        .input(`color=c=black:s=${width}x${height}:r=30`)
+        .inputOptions(["-f lavfi"])
+        .input(audioPath)
+        .outputOptions([
+          "-map 0:v",
+          "-map 1:a",
+          "-c:v libx264",
+          "-c:a aac",
+          `-af volume=${AUDIO_VOLUME}`,
+          "-shortest",
+          "-movflags +faststart"
+        ])
+        .on("end", () => {
+          resolve({
+            outputPath,
+            outputUrl: toPublicPath("renders", outputName),
+            format: format || DEFAULT_FORMAT
+          });
+        })
+        .on("error", (err) => reject(err))
+        .save(outputPath);
+    });
+  }
 
   mediaPaths.forEach((mediaPath, index) => {
     const ext = path.extname(mediaPath).toLowerCase();
@@ -89,6 +118,7 @@ const renderVideo = ({ media, audio, format }) => {
         `-map ${mediaPaths.length}:a`,
         "-c:v libx264",
         "-c:a aac",
+        `-af volume=${AUDIO_VOLUME}`,
         "-r 30",
         "-shortest",
         "-movflags +faststart"

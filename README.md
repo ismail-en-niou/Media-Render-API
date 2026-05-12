@@ -66,6 +66,7 @@ POST /api/video/generate
 - Combines voice generation + video rendering in one call.
 - body: { "text": "Welcome to my video", "media": ["/uploads/image.jpg"], "format": "9:16" }
 - response: { "success": true, "audioUrl": "/audio/...", "outputUrl": "/renders/...", "format": "9:16" }
+- `media` is optional for this endpoint. If omitted, API generates a plain background video with ElevenLabs audio.
 
 ## Export Formats
 - 16:9 -> 1920x1080
@@ -76,3 +77,4 @@ POST /api/video/generate
 - Static files are served from /uploads, /audio, and /renders.
 - Set ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID in .env.
 - IMAGE_DURATION_SECONDS controls how long each image stays on screen.
+- AUDIO_VOLUME controls output audio gain (default: 1.5).

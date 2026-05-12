@@ -368,11 +368,6 @@ combinedGenerateBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (files.length === 0 && media.length === 0) {
-    log("Combined generation skipped: provide media paths or upload files.");
-    return;
-  }
-
   try {
     log("Generating video from text with ElevenLabs...");
     let data;

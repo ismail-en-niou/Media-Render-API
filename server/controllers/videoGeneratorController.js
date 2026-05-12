@@ -14,8 +14,8 @@ const generateVideoWithElevenLabs = async (req, res, next) => {
       return res.status(400).json({ error: "text is required" });
     }
 
-    if (!Array.isArray(media) || media.length === 0) {
-      return res.status(400).json({ error: "media must be a non-empty array or upload files[]" });
+    if (!Array.isArray(media)) {
+      return res.status(400).json({ error: "media must be an array when provided" });
     }
 
     // Step 1: Generate voice from text using ElevenLabs
