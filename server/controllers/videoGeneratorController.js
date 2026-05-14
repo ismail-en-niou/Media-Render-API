@@ -3,19 +3,79 @@ const { renderVideo } = require("../services/renderService");
 const { createVideo } = require("../services/videoService");
 const { toPublicPath } = require("../utils/paths");
 
+const parseJsonField = (value) => {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "object") {
+    return value;
+  }
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const normalizeClips = ({ rawClips, bodyMedia, uploadedMedia }) => {
+  let clips = [];
+  if (Array.isArray(rawClips)) {
+    clips = rawClips;
+  } else if (Array.isArray(bodyMedia)) {
+    clips = bodyMedia;
+  }
+
+  const normalized = clips
+    .map((clip) => {
+      if (!clip) {
+        return null;
+      }
+      if (typeof clip === "string") {
+        return { src: clip };
+      }
+      if (typeof clip === "object") {
+        return { ...clip };
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  if (uploadedMedia.length > 0) {
+    if (normalized.length === 0) {
+      return uploadedMedia.map((src) => ({ src }));
+    }
+    return normalized
+      .map((clip, index) => {
+        if (!clip.src && uploadedMedia[index]) {
+          return { ...clip, src: uploadedMedia[index] };
+        }
+        return clip;
+      })
+      .filter((clip) => Boolean(clip.src));
+  }
+
+  return normalized;
+};
+
 const generateVideoWithElevenLabs = async (req, res, next) => {
   try {
-    const { text, format } = req.body;
-    const bodyMedia = Array.isArray(req.body.media) ? req.body.media : [];
+    const { text, format, extendMode, defaultEffect } = req.body;
+    const resolvedExtendMode = extendMode || "loop";
+    const rawClips = parseJsonField(req.body.clips);
+    const bodyMedia = parseJsonField(req.body.media) || [];
+    const textStyle = parseJsonField(req.body.textStyle);
     const uploadedMedia = (req.files || []).map((file) => toPublicPath("uploads", file.filename));
-    const media = uploadedMedia.length > 0 ? uploadedMedia : bodyMedia;
+    const clips = normalizeClips({ rawClips, bodyMedia, uploadedMedia });
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "text is required" });
     }
 
-    if (!Array.isArray(media)) {
-      return res.status(400).json({ error: "media must be an array when provided" });
+    if (!Array.isArray(clips)) {
+      return res.status(400).json({ error: "clips must be an array when provided" });
     }
 
     // Step 1: Generate voice from text using ElevenLabs
@@ -32,9 +92,13 @@ const generateVideoWithElevenLabs = async (req, res, next) => {
     let renderResult;
     try {
       renderResult = await renderVideo({
-        media,
+        clips,
         audio: voiceResult.audioUrl,
-        format: format || "16:9"
+        wordTimings: voiceResult.wordTimings,
+        format: format || "16:9",
+        extendMode: resolvedExtendMode,
+        defaultEffect,
+        textStyle
       });
     } catch (err) {
       return res.status(500).json({
@@ -44,7 +108,7 @@ const generateVideoWithElevenLabs = async (req, res, next) => {
 
     // Step 3: Save to database
     await createVideo({
-      media,
+      media: clips.map((clip) => clip.src).filter(Boolean),
       audio: voiceResult.audioUrl,
       output: renderResult.outputUrl,
       status: "completed"
@@ -55,7 +119,8 @@ const generateVideoWithElevenLabs = async (req, res, next) => {
       text,
       audioUrl: voiceResult.audioUrl,
       outputUrl: renderResult.outputUrl,
-      format: renderResult.format
+      format: renderResult.format,
+      warnings: renderResult.warnings || []
     });
   } catch (err) {
     return next(err);

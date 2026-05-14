@@ -11,6 +11,7 @@ const imageRoutes = require("./routes/imageRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const renderJobRoutes = require("./routes/renderJobRoutes");
 const videoGeneratorRoutes = require("./routes/videoGeneratorRoutes");
+const uploadsManageRoutes = require("./routes/uploadsManageRoutes");
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./utils/swaggerDoc');
 
@@ -34,6 +35,7 @@ app.use("/api/render", renderRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api/render-job", renderJobRoutes);
 app.use("/api/video/generate", videoGeneratorRoutes);
+app.use("/api/uploads", uploadsManageRoutes);
 
 // Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
