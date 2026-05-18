@@ -31,6 +31,8 @@ Notes:
 - If you do not want MongoDB, remove the `mongo` service and `MONGODB_URI` entry from docker-compose.yml.
 - Caddy expects the domain `ext.jb-chat.com` to point to your server (DNS A record).
 - Caddy terminates TLS and proxies `/api`, `/uploads`, `/audio`, `/images`, and `/renders` to the API.
+- If ports 80/443 are already in use, set `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` in your `.env` (example: 8080/8443).
+- The frontend is exposed on `FRONTEND_HTTP_PORT` (default: 8081) for nginx/Apache reverse proxy setups.
 
 API docs
  - Swagger UI: http://localhost:3000/api/docs

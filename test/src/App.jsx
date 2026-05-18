@@ -110,7 +110,7 @@ function App() {
   const [clips, setClips] = useState([])
   const [format, setFormat] = useState('16:9')
   const [extendMode, setExtendMode] = useState('loop')
-  const [defaultEffect, setDefaultEffect] = useState('zoom-in')
+  const [defaultEffect, setDefaultEffect] = useState('none')
   const [textStyle, setTextStyle] = useState(DEFAULT_TEXT_STYLE)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState(null)
@@ -221,7 +221,7 @@ function App() {
         name: file.name,
         type,
         duration: type === 'image' ? 4 : '',
-        effect: 'zoom-in',
+        effect: 'none',
         text: '',
         textStart: '',
         textEnd: '',

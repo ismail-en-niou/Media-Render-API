@@ -1,12 +1,11 @@
 ext.jb-chat.com {
   encode gzip
 
-  @api path /api/* /uploads/* /audio/* /images/* /renders/*
-  handle @api {
-    reverse_proxy api:3000
-  }
+  reverse_proxy /api/* api:3000
+  reverse_proxy /uploads/* api:3000
+  reverse_proxy /audio/* api:3000
+  reverse_proxy /images/* api:3000
+  reverse_proxy /renders/* api:3000
 
-  handle {
-    reverse_proxy frontend:80
-  }
+  reverse_proxy frontend:80
 }
