@@ -90,6 +90,18 @@ const cleanObject = (input) => {
   return output
 }
 
+const parseResponseBody = async (response) => {
+  const text = await response.text()
+  if (!text) {
+    return null
+  }
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    return { message: text }
+  }
+}
+
 function App() {
   const [themeMode, setThemeMode] = useState(
     () => localStorage.getItem('themeMode') || 'system'
@@ -149,9 +161,9 @@ function App() {
     setUploadsLoading(true)
     try {
       const response = await fetch(`${API_BASE}/api/uploads`)
-      const data = await response.json()
+      const data = await parseResponseBody(response)
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load uploads')
+        throw new Error(data?.error || data?.message || 'Failed to load uploads')
       }
       setUploads(data.files || [])
     } catch (err) {
@@ -161,14 +173,33 @@ function App() {
     }
   }
 
+  const handleInsertUpload = (file) => {
+    const type = file.type === 'video' ? 'video' : 'image'
+    const clip = {
+      id: createId(),
+      file: null,
+      preview: resolveUrl(file.url),
+      src: file.url,
+      name: file.name,
+      type,
+      duration: type === 'image' ? 4 : '',
+      effect: defaultEffect,
+      text: '',
+      textStart: '',
+      textEnd: '',
+    }
+    setClips((prev) => [...prev, clip])
+    addLog(`Inserted ${file.name} into clips`)
+  }
+
   const handleDeleteUpload = async (name) => {
     try {
       const response = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(name)}`, {
         method: 'DELETE',
       })
-      const data = await response.json()
+      const data = await parseResponseBody(response)
       if (!response.ok) {
-        throw new Error(data.error || 'Delete failed')
+        throw new Error(data?.error || data?.message || 'Delete failed')
       }
       addLog(`Deleted ${name}`)
       fetchUploads()
@@ -255,6 +286,7 @@ function App() {
         : undefined
 
       return cleanObject({
+        src: clip.src,
         effect: clip.effect,
         duration: clip.type === 'image' ? Number(clip.duration) || undefined : undefined,
         text: textOverlay,
@@ -277,9 +309,9 @@ function App() {
         method: 'POST',
         body: formData,
       })
-      const data = await response.json()
+      const data = await parseResponseBody(response)
       if (!response.ok) {
-        throw new Error(data.error || 'Video render failed')
+        throw new Error(data?.error || data?.message || 'Video render failed')
       }
       setResult(data)
       addLog('Render completed. Video is ready to download.')
@@ -322,6 +354,7 @@ function App() {
               loading={uploadsLoading}
               onRefresh={fetchUploads}
               onDelete={handleDeleteUpload}
+              onInsert={handleInsertUpload}
               resolveUrl={resolveUrl}
             />
             <ClipsPanel

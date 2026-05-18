@@ -20,7 +20,7 @@ docker run --env-file .env -p 3000:3000 \
 ```
 
 ## Docker Compose
-Run API + MongoDB:
+Run API + MongoDB + Frontend + Caddy:
 
 ```bash
 docker compose up --build
@@ -29,6 +29,8 @@ docker compose up --build
 Notes:
 - Compose sets `MONGODB_URI` to the `mongo` service.
 - If you do not want MongoDB, remove the `mongo` service and `MONGODB_URI` entry from docker-compose.yml.
+- Caddy expects the domain `ext.jb-chat.com` to point to your server (DNS A record).
+- Caddy terminates TLS and proxies `/api`, `/uploads`, `/audio`, `/images`, and `/renders` to the API.
 
 API docs
  - Swagger UI: http://localhost:3000/api/docs

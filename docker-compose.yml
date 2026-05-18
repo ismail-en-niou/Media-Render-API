@@ -14,6 +14,27 @@ services:
     depends_on:
       - mongo
 
+  frontend:
+    build:
+      context: ./test
+      args:
+        VITE_API_BASE: ""
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2.8.4
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - frontend
+
   mongo:
     image: mongo:7
     ports:
@@ -23,3 +44,5 @@ services:
 
 volumes:
   mongo_data:
+  caddy_data:
+  caddy_config:

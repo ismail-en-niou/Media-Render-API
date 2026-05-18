@@ -1,20 +1,26 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo , useRef} from 'react'
 
 function ClipCard({ clip, index, total, effectOptions, onMove, onRemove, onUpdate }) {
+  const createdUrlRef = useRef(null)
   const previewUrl = useMemo(() => {
+    if (clip.preview) {
+      return clip.preview
+    }
     if (!clip.file) {
       return ''
     }
-    return URL.createObjectURL(clip.file)
-  }, [clip.file])
+    const url = URL.createObjectURL(clip.file)
+    createdUrlRef.current = url
+    return url
+  }, [clip.preview, clip.file])
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
+      if (createdUrlRef.current) {
+        URL.revokeObjectURL(createdUrlRef.current)
       }
     }
-  }, [previewUrl])
+  }, [])
 
   return (
     <div className="clip-row">

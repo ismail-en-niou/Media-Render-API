@@ -27,6 +27,10 @@ const OUTPUT_FPS = Number(process.env.OUTPUT_FPS || 30);
 const RESOLVED_FPS = Number.isFinite(OUTPUT_FPS) ? OUTPUT_FPS : 30;
 const MAX_CLIP_COUNT = Number(process.env.MAX_CLIP_COUNT || 200);
 const RESOLVED_MAX_CLIP_COUNT = Number.isFinite(MAX_CLIP_COUNT) ? MAX_CLIP_COUNT : 200;
+const MAX_WORD_FILTERS = Number(process.env.MAX_WORD_FILTERS || 140);
+const RESOLVED_MAX_WORD_FILTERS = Number.isFinite(MAX_WORD_FILTERS) && MAX_WORD_FILTERS > 0
+  ? MAX_WORD_FILTERS
+  : 140;
 const DRAW_TEXT_FONT = process.env.DRAW_TEXT_FONT || "";
 
 const DEFAULT_TEXT_STYLE = {
@@ -322,15 +326,18 @@ const normalizeWordTimings = (wordTimings) => {
       start: toNumber(word?.start),
       end: toNumber(word?.end)
     }))
-    .filter((word) => word.text && Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start);
+    .filter((word) => word.text && Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)
+    .sort((a, b) => a.start - b.start);
 };
 
 const buildZoomFilter = (direction, durationSeconds, fps, width, height) => {
   const safeDuration = Math.max(0.1, Number.isFinite(durationSeconds) ? durationSeconds : 3);
   const zoomDelta = 0.18;
+  const normT = `(t/${safeDuration})`;
+  const easeExpr = `(${normT}*${normT}*(3-2*${normT}))`;
   const factorExpr = direction === "zoom-out"
-    ? `${1 + zoomDelta}-(${zoomDelta}*(t/${safeDuration}))`
-    : `1+(${zoomDelta}*(t/${safeDuration}))`;
+    ? `${1 + zoomDelta}-(${zoomDelta}*${easeExpr})`
+    : `1+(${zoomDelta}*${easeExpr})`;
 
   // Dynamic scale+crop works for both images and videos and produces visible zoom motion.
   return `scale=w='${width}*(${factorExpr})':h='${height}*(${factorExpr})':eval=frame,crop=${width}:${height},fps=${fps}`;
@@ -540,6 +547,17 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
     warnings
   });
   const resolvedWordTimings = normalizeWordTimings(wordTimings);
+  let safeWordTimings = resolvedWordTimings;
+  if (resolvedWordTimings.length > RESOLVED_MAX_WORD_FILTERS) {
+    safeWordTimings = resolvedWordTimings.slice(0, RESOLVED_MAX_WORD_FILTERS);
+    warnings.push(
+      `Word-by-word captions were limited to ${RESOLVED_MAX_WORD_FILTERS} words for render stability.`
+    );
+  }
+  if (finalClips.length > 24 && safeWordTimings.length > 0) {
+    safeWordTimings = [];
+    warnings.push("Word-by-word captions were disabled for long clip sequences to avoid FFmpeg crashes.");
+  }
 
   const outputName = `render-${uuidv4()}.mp4`;
   const outputPath = path.join(RENDERS_DIR, outputName);
@@ -551,7 +569,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
   const hasTextOverlays = finalClips.some(
     (clip) => clip.textOverlay && clip.textOverlay.value
   );
-  const hasWordTimings = resolvedWordTimings.length > 0;
+  const hasWordTimings = safeWordTimings.length > 0;
   const canDrawText = await resolveDrawtextAvailability();
   if (!canDrawText && (hasTextOverlays || hasWordTimings)) {
     warnings.push("Drawtext filter unavailable; text overlays skipped.");
@@ -596,7 +614,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
 
   const concatInputs = finalClips.map((_item, index) => `[v${index}]`).join("");
   if (canDrawText && hasWordTimings) {
-    const wordFilters = buildWordLevelDrawTextFilters(resolvedWordTimings, textStyle, 0);
+    const wordFilters = buildWordLevelDrawTextFilters(safeWordTimings, textStyle, 0);
     if (wordFilters.length > 0) {
       filterParts.push(`${concatInputs}concat=n=${finalClips.length}:v=1:a=0[vbase]`);
       filterParts.push(`[vbase]${wordFilters.join(",")}[vout]`);
@@ -614,6 +632,8 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
         "-map [vout]",
         `-map ${finalClips.length}:a`,
         "-c:v libx264",
+        "-preset veryfast",
+        "-pix_fmt yuv420p",
         "-c:a aac",
         `-af volume=${AUDIO_VOLUME}`,
         `-r ${RESOLVED_FPS}`,

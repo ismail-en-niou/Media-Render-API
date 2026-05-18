@@ -1,4 +1,4 @@
-function UploadLibraryPanel({ files, loading, onRefresh, onDelete, resolveUrl }) {
+function UploadLibraryPanel({ files, loading, onRefresh, onDelete, resolveUrl, onInsert }) {
   return (
     <section className="card">
       <div className="card-header">
@@ -41,6 +41,13 @@ function UploadLibraryPanel({ files, loading, onRefresh, onDelete, resolveUrl })
                 >
                   Open
                 </a>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => onInsert && onInsert(file)}
+                >
+                  Insert
+                </button>
                 <button
                   type="button"
                   className="button danger"
