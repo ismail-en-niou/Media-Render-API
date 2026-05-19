@@ -5,7 +5,9 @@ const { RENDERS_DIR } = require("../utils/paths");
 // In-memory store for active render jobs (for MVP; use a DB in production)
 const renderJobs = new Map();
 
-const createRenderJob = (jobId, { media, audio, format }) => {
+const createRenderJob = (jobId, data = {}) => {
+  const { media = [], audio = null, format = null, ...extra } = data;
+
   renderJobs.set(jobId, {
     jobId,
     media,
@@ -16,7 +18,8 @@ const createRenderJob = (jobId, { media, audio, format }) => {
     outputUrl: null,
     error: null,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    ...extra
   });
   return renderJobs.get(jobId);
 };

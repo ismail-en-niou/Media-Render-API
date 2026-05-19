@@ -49,12 +49,64 @@ const DEFAULT_TEXT_STYLE = {
 const FALLBACK_BLACK_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WnqYJgAAAAASUVORK5CYII=";
 
+const ensureTmpDir = () => {
+  if (!fs.existsSync(TMP_DIR)) {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+  }
+};
+
 const ensureFallbackImage = () => {
+  ensureTmpDir();
   const fallbackPath = path.join(TMP_DIR, "fallback-black.png");
   if (!fs.existsSync(fallbackPath)) {
     fs.writeFileSync(fallbackPath, Buffer.from(FALLBACK_BLACK_PNG_BASE64, "base64"));
   }
   return fallbackPath;
+};
+
+const escapeFilterOption = (value) => {
+  return String(value)
+    .replace(/\\/g, "/")
+    .replace(/:/g, "\\:")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/'/g, "\\'")
+    .replace(/\s/g, "\\ ");
+};
+
+const toFilterPath = (filePath) => {
+  const absolutePath = path.resolve(filePath);
+  const relativePath = path.relative(process.cwd(), absolutePath) || absolutePath;
+  return escapeFilterOption(relativePath);
+};
+
+const createDrawtextTextFile = (value, tempFiles) => {
+  ensureTmpDir();
+  const filePath = path.join(TMP_DIR, `drawtext-${uuidv4()}.txt`);
+  fs.writeFileSync(filePath, String(value ?? ""), "utf8");
+  if (Array.isArray(tempFiles)) {
+    tempFiles.push(filePath);
+  }
+  return filePath;
+};
+
+const buildDrawtextTextOption = (value, tempFiles) => {
+  if (Array.isArray(tempFiles)) {
+    return `textfile=${toFilterPath(createDrawtextTextFile(value, tempFiles))}`;
+  }
+  return `text='${escapeDrawtext(value)}'`;
+};
+
+const cleanupTempFiles = (files) => {
+  files.forEach((filePath) => {
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      // Best-effort cleanup only; render output should not fail because of it.
+    }
+  });
 };
 
 const ensureAllowedPath = (absolutePath) => {
@@ -237,7 +289,7 @@ const escapeDrawtext = (value) => {
     .replace(/\n/g, "\\n");
 };
 
-const buildDrawTextFilter = (textOverlay, textStyle, clipDuration) => {
+const buildDrawTextFilter = (textOverlay, textStyle, clipDuration, tempTextFiles) => {
   if (!textOverlay || !textOverlay.value) {
     return null;
   }
@@ -245,7 +297,8 @@ const buildDrawTextFilter = (textOverlay, textStyle, clipDuration) => {
   const style = normalizeTextStyle(textStyle);
   const { x: xPos, y: yPos } = resolveTextPosition(style);
   const parts = [
-    `drawtext=text='${escapeDrawtext(textOverlay.value)}'`,
+    `drawtext=${buildDrawtextTextOption(textOverlay.value, tempTextFiles)}`,
+    "expansion=none",
     `fontcolor=${style.color}`,
     `fontsize=${style.fontSize}`,
     `x=${xPos}`,
@@ -253,7 +306,7 @@ const buildDrawTextFilter = (textOverlay, textStyle, clipDuration) => {
   ];
 
   if (style.fontFile) {
-    parts.push(`fontfile='${escapeDrawtext(style.fontFile)}'`);
+    parts.push(`fontfile=${toFilterPath(style.fontFile)}`);
   }
 
   if (style.shadowColor) {
@@ -273,7 +326,7 @@ const buildDrawTextFilter = (textOverlay, textStyle, clipDuration) => {
   return parts.join(":");
 };
 
-const buildWordLevelDrawTextFilters = (words, textStyle, clipStart = 0) => {
+const buildWordLevelDrawTextFilters = (words, textStyle, clipStart = 0, tempTextFiles) => {
   if (!Array.isArray(words) || words.length === 0) {
     return [];
   }
@@ -290,7 +343,8 @@ const buildWordLevelDrawTextFilters = (words, textStyle, clipStart = 0) => {
     }
 
     const parts = [
-      `drawtext=text='${escapeDrawtext(wordText)}'`,
+      `drawtext=${buildDrawtextTextOption(wordText, tempTextFiles)}`,
+      "expansion=none",
       `fontcolor=${style.color}`,
       `fontsize=${style.fontSize}`,
       `x=${xPos}`,
@@ -298,7 +352,7 @@ const buildWordLevelDrawTextFilters = (words, textStyle, clipStart = 0) => {
     ];
 
     if (style.fontFile) {
-      parts.push(`fontfile='${escapeDrawtext(style.fontFile)}'`);
+      parts.push(`fontfile=${toFilterPath(style.fontFile)}`);
     }
 
     if (style.shadowColor) {
@@ -564,6 +618,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
 
   const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1`;
   const filterParts = [];
+  const tempTextFiles = [];
   const command = ffmpeg();
 
   const hasTextOverlays = finalClips.some(
@@ -601,7 +656,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
     }
 
     if (canDrawText && clip.textOverlay && clip.textOverlay.value && !hasWordTimings) {
-      const textFilter = buildDrawTextFilter(clip.textOverlay, textStyle, clip.duration);
+      const textFilter = buildDrawTextFilter(clip.textOverlay, textStyle, clip.duration, tempTextFiles);
       if (textFilter) {
         filterChain.push(textFilter);
       }
@@ -614,7 +669,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
 
   const concatInputs = finalClips.map((_item, index) => `[v${index}]`).join("");
   if (canDrawText && hasWordTimings) {
-    const wordFilters = buildWordLevelDrawTextFilters(safeWordTimings, textStyle, 0);
+    const wordFilters = buildWordLevelDrawTextFilters(safeWordTimings, textStyle, 0, tempTextFiles);
     if (wordFilters.length > 0) {
       filterParts.push(`${concatInputs}concat=n=${finalClips.length}:v=1:a=0[vbase]`);
       filterParts.push(`[vbase]${wordFilters.join(",")}[vout]`);
@@ -641,6 +696,7 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
         "-movflags +faststart"
       ])
       .on("end", () => {
+        cleanupTempFiles(tempTextFiles);
         resolve({
           outputPath,
           outputUrl: toPublicPath("renders", outputName),
@@ -648,7 +704,10 @@ const renderVideo = async ({ media, clips, audio, wordTimings, format, extendMod
           warnings
         });
       })
-      .on("error", (err) => reject(err))
+      .on("error", (err) => {
+        cleanupTempFiles(tempTextFiles);
+        reject(err);
+      })
       .save(outputPath);
   });
 };
