@@ -1,5 +1,7 @@
 FROM node:20-bookworm
 
+WORKDIR /app
+
 # Install FFmpeg with drawtext support and fonts.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

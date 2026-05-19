@@ -62,6 +62,8 @@ const resolveUrl = (path) => {
   return `${base}${path}`
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const getClipType = (file) => {
   if (!file) {
     return 'image'
@@ -98,6 +100,10 @@ const parseResponseBody = async (response) => {
   try {
     return JSON.parse(text)
   } catch (err) {
+    const title = text.match(/<title[^>]*>(.*?)<\/title>/is)?.[1]
+    if (title) {
+      return { message: title.replace(/\s+/g, ' ').trim() }
+    }
     return { message: text }
   }
 }
@@ -258,6 +264,44 @@ function App() {
     setClips([])
   }
 
+  const pollVideoJob = async (jobId) => {
+    let lastProgress = null
+
+    for (let attempt = 0; attempt < 720; attempt += 1) {
+      await sleep(attempt === 0 ? 1000 : 2500)
+
+      const response = await fetch(`${API_BASE}/api/video/generate/jobs/${jobId}`, {
+        cache: 'no-store',
+      })
+      const data = await parseResponseBody(response)
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to check render job')
+      }
+
+      if (Number.isFinite(Number(data.progress)) && data.progress !== lastProgress) {
+        lastProgress = data.progress
+        addLog(`${data.message || 'Rendering'} (${Math.round(data.progress)}%)`)
+      }
+
+      if (data.status === 'completed') {
+        return {
+          success: true,
+          text: data.text || script.trim(),
+          audioUrl: data.audioUrl || data.audio,
+          outputUrl: data.outputUrl,
+          format: data.format || format,
+          warnings: data.warnings || [],
+        }
+      }
+
+      if (data.status === 'failed') {
+        throw new Error(data.error || 'Video render failed')
+      }
+    }
+
+    throw new Error('Render job took too long. Please check the server logs.')
+  }
+
   const handleGenerate = async () => {
     setError('')
     if (!script.trim()) {
@@ -305,7 +349,7 @@ function App() {
     setResult(null)
 
     try {
-      const response = await fetch(`${API_BASE}/api/video/generate`, {
+      const response = await fetch(`${API_BASE}/api/video/generate/jobs`, {
         method: 'POST',
         body: formData,
       })
@@ -313,7 +357,13 @@ function App() {
       if (!response.ok) {
         throw new Error(data?.error || data?.message || 'Video render failed')
       }
-      setResult(data)
+      if (!data?.jobId) {
+        throw new Error(data?.error || data?.message || 'Render job was not created')
+      }
+
+      addLog(`Render job accepted: ${data.jobId}`)
+      const completed = await pollVideoJob(data.jobId)
+      setResult(completed)
       addLog('Render completed. Video is ready to download.')
       fetchUploads()
     } catch (err) {

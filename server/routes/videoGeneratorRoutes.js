@@ -3,7 +3,11 @@ const multer = require("multer");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const { UPLOADS_DIR } = require("../utils/paths");
-const { generateVideoWithElevenLabs } = require("../controllers/videoGeneratorController");
+const {
+	generateVideoWithElevenLabs,
+	startVideoGenerationJob,
+	getVideoGenerationJob
+} = require("../controllers/videoGeneratorController");
 
 const router = express.Router();
 
@@ -29,6 +33,8 @@ const upload = multer({
 	limits: { fileSize: 1024 * 1024 * 200 }
 });
 
+router.post("/jobs", upload.array("files", 10), startVideoGenerationJob);
+router.get("/jobs/:jobId", getVideoGenerationJob);
 router.post("/", upload.array("files", 10), generateVideoWithElevenLabs);
 
 module.exports = router;

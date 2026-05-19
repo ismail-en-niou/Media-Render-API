@@ -53,7 +53,8 @@ const cleanupOldJobs = () => {
   const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
 
   for (const [jobId, job] of renderJobs.entries()) {
-    if (job.updatedAt < thirtyMinutesAgo) {
+    const isFinished = job.status === "completed" || job.status === "failed";
+    if (isFinished && job.updatedAt < thirtyMinutesAgo) {
       renderJobs.delete(jobId);
     }
   }
